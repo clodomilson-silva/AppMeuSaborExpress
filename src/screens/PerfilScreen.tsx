@@ -11,6 +11,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { Colors, FontSize, FontWeight, Radius, Spacing } from '../theme';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useAuth } from '../context/AuthContext';
+import { RootStackParamList } from '../navigation/AppNavigator';
 
 interface MenuItem {
   icon: keyof typeof Ionicons.glyphMap;
@@ -29,6 +33,44 @@ const menuItems: MenuItem[] = [
 
 export default function PerfilScreen() {
   const tabBarHeight = useBottomTabBarHeight();
+  const { user, logout } = useAuth();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+
+  // ---- Estado de visitante (não logado) ----
+  if (!user) {
+    return (
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <StatusBar barStyle="light-content" backgroundColor={Colors.background} />
+        <View style={styles.header}>
+          <Text style={styles.title}>Perfil</Text>
+        </View>
+        <View style={[styles.guestContainer, { paddingBottom: tabBarHeight + Spacing.xl }]}>
+          <View style={styles.guestIconCircle}>
+            <Ionicons name="person-outline" size={48} color={Colors.textMuted} />
+          </View>
+          <Text style={styles.guestTitle}>Você não está logado</Text>
+          <Text style={styles.guestSubtitle}>
+            Faça login ou crie uma conta para acompanhar seus pedidos e gerenciar seu perfil.
+          </Text>
+          <TouchableOpacity
+            style={styles.guestBtnPrimary}
+            onPress={() => navigation.navigate('Login')}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="log-in-outline" size={20} color={Colors.white} />
+            <Text style={styles.guestBtnPrimaryText}>Entrar</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.guestBtnSecondary}
+            onPress={() => navigation.navigate('Register')}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.guestBtnSecondaryText}>Criar conta gratuita</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -50,8 +92,8 @@ export default function PerfilScreen() {
               <Ionicons name="camera" size={14} color={Colors.white} />
             </TouchableOpacity>
           </View>
-          <Text style={styles.userName}>Olá, Cliente!</Text>
-          <Text style={styles.userEmail}>cliente@email.com</Text>
+          <Text style={styles.userName}>Olá, {user?.name ?? 'Cliente'}!</Text>
+          <Text style={styles.userEmail}>{user?.email ?? ''}</Text>
         </View>
 
         {/* Menu Items */}
@@ -82,7 +124,7 @@ export default function PerfilScreen() {
         </View>
 
         {/* Logout */}
-        <TouchableOpacity style={styles.logoutBtn}>
+        <TouchableOpacity style={styles.logoutBtn} onPress={logout} activeOpacity={0.8}>
           <Ionicons name="log-out-outline" size={20} color={Colors.error} />
           <Text style={styles.logoutText}>Sair</Text>
         </TouchableOpacity>
@@ -207,5 +249,71 @@ const styles = StyleSheet.create({
     fontSize: FontSize.md,
     fontWeight: FontWeight.semiBold,
     color: '#F44336',
+  },
+  // Guest state
+  guestContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.xl,
+  },
+  guestIconCircle: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: Colors.backgroundCard,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.xl,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  guestTitle: {
+    fontSize: FontSize.xl,
+    fontWeight: FontWeight.bold,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.sm,
+  },
+  guestSubtitle: {
+    fontSize: FontSize.md,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: Spacing.xxxl,
+  },
+  guestBtnPrimary: {
+    width: '100%',
+    height: 50,
+    backgroundColor: Colors.primary,
+    borderRadius: Radius.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  guestBtnPrimaryText: {
+    fontSize: FontSize.md,
+    fontWeight: FontWeight.bold,
+    color: Colors.white,
+  },
+  guestBtnSecondary: {
+    width: '100%',
+    height: 50,
+    borderRadius: Radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: Colors.primary,
+  },
+  guestBtnSecondaryText: {
+    fontSize: FontSize.md,
+    fontWeight: FontWeight.semiBold,
+    color: Colors.primary,
   },
 });
