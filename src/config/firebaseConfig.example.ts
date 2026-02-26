@@ -2,8 +2,11 @@
 // Firebase Console → Configurações do Projeto → Seus apps → SDK do Firebase
 
 import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore – getReactNativePersistence está disponível no bundle RN (resolvido pelo Metro em runtime)
+import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
+import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
 
 const firebaseConfig = {
   apiKey: 'SEU_API_KEY',
@@ -17,5 +20,7 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
-export const auth = getAuth(app);
+export const auth = initializeAuth(app, {
+  persistence: getReactNativePersistence(ReactNativeAsyncStorage),
+});
 export const db = getFirestore(app);

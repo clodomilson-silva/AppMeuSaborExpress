@@ -4,6 +4,7 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
+  ScrollView,
   StatusBar,
   Alert,
 } from 'react-native';
@@ -14,45 +15,61 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { Colors, FontSize, FontWeight, Radius, Spacing } from '../theme';
 import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
 import { RootStackParamList } from '../navigation/AppNavigator';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '../config/firebaseConfig';
 
 type NavProp = NativeStackNavigationProp<RootStackParamList>;
-
-// Simulação de itens no carrinho (futuramente virá de um CartContext)
-const MOCK_ITEMS: { name: string; qty: number; price: number }[] = [
-  // Deixe vazio para testar o estado de carrinho vazio,
-  // ou adicione itens para ver o layout com produtos.
-  // Exemplo:
-  // { name: 'X-Burguer Especial', qty: 1, price: 29.9 },
-  // { name: 'Coca-Cola 350ml', qty: 2, price: 7.5 },
-];
 
 export default function CarrinhoScreen() {
   const navigation = useNavigation<NavProp>();
   const tabBarHeight = useBottomTabBarHeight();
   const { user } = useAuth();
+  const { items, total, updateQty, removeItem, clearCart } = useCart();
 
-  const hasItems = MOCK_ITEMS.length > 0;
-  const total = MOCK_ITEMS.reduce((acc, item) => acc + item.price * item.qty, 0);
+  const hasItems = items.length > 0;
 
-  function handleCheckout() {
+  async function handleCheckout() {
     if (!user) {
-      // Usuário não autenticado → apresentar opção de login
       Alert.alert(
         'Login necessário',
         'Você precisa entrar na sua conta para finalizar o pedido.',
         [
           { text: 'Agora não', style: 'cancel' },
-          {
-            text: 'Entrar',
-            onPress: () => navigation.navigate('Login'),
-          },
+          { text: 'Entrar', onPress: () => navigation.navigate('Login') },
         ],
       );
       return;
     }
-    // Usuário autenticado → prosseguir com o pedido
-    Alert.alert('Pedido confirmado!', 'Seu pedido foi recebido e está sendo preparado. 🍔');
+
+    try {
+      const pedidoItems = items.map((i) => ({
+        id: i.product.id,
+        name: i.product.name,
+        price: i.product.price,
+        qty: i.qty,
+        addons: i.addons.map((a) => ({ id: a.id, name: a.name, price: a.price })),
+        observations: i.observations ?? '',
+      }));
+
+      await addDoc(collection(db, 'usuarios', user.uid, 'pedidos'), {
+        items: pedidoItems,
+        total,
+        status: 'Em preparo',
+        createdAt: serverTimestamp(),
+      });
+
+      clearCart();
+      Alert.alert(
+        'Pedido confirmado! 🍔',
+        'Seu pedido foi recebido e está sendo preparado.',
+        [{ text: 'OK' }],
+      );
+    } catch (e) {
+      console.error('Erro ao salvar pedido:', e);
+      Alert.alert('Erro', 'Não foi possível registrar seu pedido. Tente novamente.');
+    }
   }
 
   return (
@@ -63,33 +80,64 @@ export default function CarrinhoScreen() {
       <View style={styles.header}>
         <Text style={styles.title}>Carrinho</Text>
         {hasItems && (
-          <TouchableOpacity>
+          <TouchableOpacity onPress={clearCart}>
             <Text style={styles.clearText}>Limpar</Text>
           </TouchableOpacity>
         )}
       </View>
 
-      {/* Conteúdo */}
       {hasItems ? (
         /* ---- Carrinho com itens ---- */
-        <View style={styles.flex}>
+        <ScrollView
+          style={styles.flex}
+          contentContainerStyle={{ paddingBottom: 24 }}
+          showsVerticalScrollIndicator={false}
+        >
           <View style={styles.itemList}>
-            {MOCK_ITEMS.map((item, idx) => (
+            {items.map((item, idx) => (
               <View
-                key={idx}
-                style={[styles.itemRow, idx < MOCK_ITEMS.length - 1 && styles.itemBorder]}
+                key={item.product.id}
+                style={[styles.itemRow, idx < items.length - 1 && styles.itemBorder]}
               >
+                {/* Info */}
                 <View style={styles.itemInfo}>
-                  <Text style={styles.itemName}>{item.name}</Text>
-                  <Text style={styles.itemQty}>Qtd: {item.qty}</Text>
+                  <Text style={styles.itemName}>{item.product.name}</Text>
+                  {item.addons.length > 0 && (
+                    <Text style={styles.itemAddons}>
+                      + {item.addons.map((a) => a.name).join(', ')}
+                    </Text>
+                  )}
+                  <Text style={styles.itemPrice}>
+                    R$ {((item.product.price + item.addons.reduce((s, a) => s + a.price, 0)) * item.qty)
+                      .toFixed(2)
+                      .replace('.', ',')}
+                  </Text>
                 </View>
-                <Text style={styles.itemPrice}>
-                  R$ {(item.price * item.qty).toFixed(2).replace('.', ',')}
-                </Text>
+
+                {/* Controles qty */}
+                <View style={styles.qtyControls}>
+                  <TouchableOpacity
+                    style={styles.qtyBtn}
+                    onPress={() => updateQty(item.product.id, item.qty - 1)}
+                  >
+                    <Ionicons
+                      name={item.qty === 1 ? 'trash-outline' : 'remove'}
+                      size={16}
+                      color={item.qty === 1 ? Colors.error : Colors.textPrimary}
+                    />
+                  </TouchableOpacity>
+                  <Text style={styles.qtyText}>{item.qty}</Text>
+                  <TouchableOpacity
+                    style={styles.qtyBtn}
+                    onPress={() => updateQty(item.product.id, item.qty + 1)}
+                  >
+                    <Ionicons name="add" size={16} color={Colors.primary} />
+                  </TouchableOpacity>
+                </View>
               </View>
             ))}
           </View>
-        </View>
+        </ScrollView>
       ) : (
         /* ---- Carrinho vazio ---- */
         <View style={styles.emptyContainer}>
@@ -110,7 +158,7 @@ export default function CarrinhoScreen() {
         </View>
       )}
 
-      {/* ---- Rodapé de checkout (sempre visível quando tem itens) ---- */}
+      {/* ---- Rodapé de checkout ---- */}
       {hasItems && (
         <View style={[styles.checkoutBar, { paddingBottom: tabBarHeight + Spacing.md }]}>
           <View style={styles.totalRow}>
@@ -138,23 +186,16 @@ export default function CarrinhoScreen() {
             )}
           </TouchableOpacity>
 
-          {/* Aviso de login quando visitante */}
           {!user && (
             <View style={styles.authNotice}>
               <Ionicons name="information-circle-outline" size={15} color={Colors.textMuted} />
               <Text style={styles.authNoticeText}>
                 Você precisa estar logado para finalizar o pedido.{' '}
-                <Text
-                  style={styles.authLink}
-                  onPress={() => navigation.navigate('Login')}
-                >
+                <Text style={styles.authLink} onPress={() => navigation.navigate('Login')}>
                   Entrar
                 </Text>{' '}
                 ou{' '}
-                <Text
-                  style={styles.authLink}
-                  onPress={() => navigation.navigate('Register')}
-                >
+                <Text style={styles.authLink} onPress={() => navigation.navigate('Register')}>
                   Criar conta
                 </Text>
               </Text>
@@ -173,7 +214,6 @@ const styles = StyleSheet.create({
   },
   flex: { flex: 1 },
 
-  // Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -194,7 +234,6 @@ const styles = StyleSheet.create({
     fontWeight: FontWeight.medium,
   },
 
-  // Empty state
   emptyContainer: {
     flex: 1,
     alignItems: 'center',
@@ -238,7 +277,6 @@ const styles = StyleSheet.create({
     fontSize: FontSize.md,
   },
 
-  // Item list
   itemList: {
     marginHorizontal: Spacing.lg,
     marginTop: Spacing.md,
@@ -259,25 +297,45 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
   },
-  itemInfo: { flex: 1 },
+  itemInfo: { flex: 1, paddingRight: Spacing.md },
   itemName: {
     fontSize: FontSize.md,
     fontWeight: FontWeight.medium,
     color: Colors.textPrimary,
   },
-  itemQty: {
+  itemAddons: {
     fontSize: FontSize.xs,
     color: Colors.textMuted,
     marginTop: 2,
   },
   itemPrice: {
-    fontSize: FontSize.md,
+    fontSize: FontSize.sm,
     fontWeight: FontWeight.bold,
     color: Colors.primary,
-    marginLeft: Spacing.md,
+    marginTop: 4,
   },
 
-  // Checkout bar
+  qtyControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  qtyBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: Colors.backgroundInput,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  qtyText: {
+    fontSize: FontSize.md,
+    fontWeight: FontWeight.bold,
+    color: Colors.textPrimary,
+    minWidth: 20,
+    textAlign: 'center',
+  },
+
   checkoutBar: {
     backgroundColor: Colors.backgroundCard,
     borderTopWidth: 1,
@@ -321,8 +379,6 @@ const styles = StyleSheet.create({
     color: Colors.white,
     letterSpacing: 0.3,
   },
-
-  // Auth notice
   authNotice: {
     flexDirection: 'row',
     alignItems: 'flex-start',

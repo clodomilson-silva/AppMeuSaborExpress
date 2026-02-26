@@ -9,6 +9,9 @@ import {
   TextInput,
   StatusBar,
   Dimensions,
+  ToastAndroid,
+  Platform,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,6 +19,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { Colors, FontSize, FontWeight, Radius, Spacing } from '../theme';
 import AddonItem from '../components/AddonItem';
 import { RootStackParamList } from '../navigation/AppNavigator';
+import { useCart } from '../context/CartContext';
 
 type RouteType = RouteProp<RootStackParamList, 'ProductDetail'>;
 
@@ -26,10 +30,25 @@ export default function ProductDetailScreen() {
   const navigation = useNavigation();
   const route = useRoute<RouteType>();
   const { product } = route.params;
+  const { addItem } = useCart();
 
   const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
   const [observations, setObservations] = useState('');
   const [quantity, setQuantity] = useState(1);
+
+  function handleAddToCart() {
+    const chosenAddons = (product.addons || []).filter((a) =>
+      selectedAddons.includes(a.id),
+    );
+    addItem(product, quantity, chosenAddons, observations);
+
+    if (Platform.OS === 'android') {
+      ToastAndroid.show('Item adicionado ao carrinho!', ToastAndroid.SHORT);
+    } else {
+      Alert.alert('Adicionado!', `${product.name} foi adicionado ao carrinho.`);
+    }
+    navigation.goBack();
+  }
 
   const toggleAddon = (id: string) => {
     setSelectedAddons((prev) =>
@@ -123,7 +142,7 @@ export default function ProductDetailScreen() {
             <Ionicons name="add" size={18} color={Colors.white} />
           </TouchableOpacity>
         </View>
-        <TouchableOpacity style={styles.addBtn} activeOpacity={0.85}>
+        <TouchableOpacity style={styles.addBtn} activeOpacity={0.85} onPress={handleAddToCart}>
           <Text style={styles.addBtnText}>
             Adicionar • R$ {totalPrice.toFixed(2).replace('.', ',')}
           </Text>
