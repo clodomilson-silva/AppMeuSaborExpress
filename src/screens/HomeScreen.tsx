@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,15 +6,17 @@ import {
   StyleSheet,
   TouchableOpacity,
   StatusBar,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
+import * as Location from 'expo-location';
 import { Colors, FontSize, FontWeight, Radius, Spacing } from '../theme';
 import { categories } from '../data/categories';
-import { products, mostOrdered, featured, promoProduct } from '../data/products';
+import { mostOrdered, featured, promoProduct } from '../data/products';
 import PromoBanner from '../components/PromoBanner';
 import CategoryItem from '../components/CategoryItem';
 import ProductCardLarge from '../components/ProductCardLarge';
@@ -25,16 +27,74 @@ import { Product } from '../data/products';
 
 type NavProp = NativeStackNavigationProp<RootStackParamList>;
 
+type LocationState = 'loading' | 'granted' | 'denied' | 'error';
+
 export default function HomeScreen() {
   const [search, setSearch] = useState('');
   const navigation = useNavigation<NavProp>();
   const tabBarHeight = useBottomTabBarHeight();
 
+  const [locationState, setLocationState] = useState<LocationState>('loading');
+  const [addressLine, setAddressLine] = useState('Obtendo localização...');
+  const [cityLine, setCityLine] = useState('');
+
   const homeCategories = categories.filter(c => c.id !== 'all');
+
+  const fetchLocation = useCallback(async () => {
+    setLocationState('loading');
+    setAddressLine('Obtendo localização...');
+    setCityLine('');
+
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        setLocationState('denied');
+        setAddressLine('Permissão negada');
+        setCityLine('Toque para tentar novamente');
+        return;
+      }
+
+      const coords = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+
+      const [place] = await Location.reverseGeocodeAsync({
+        latitude: coords.coords.latitude,
+        longitude: coords.coords.longitude,
+      });
+
+      if (place) {
+        const street = place.street
+          ? `${place.street}${place.streetNumber ? ', ' + place.streetNumber : ''}`
+          : place.name ?? 'Endereço desconhecido';
+        const city = [place.district, place.city, place.region]
+          .filter(Boolean)
+          .join(' - ');
+
+        setAddressLine(street);
+        setCityLine(city);
+        setLocationState('granted');
+      } else {
+        setAddressLine('Localização obtida');
+        setCityLine(`${coords.coords.latitude.toFixed(4)}, ${coords.coords.longitude.toFixed(4)}`);
+        setLocationState('granted');
+      }
+    } catch {
+      setLocationState('error');
+      setAddressLine('Erro ao obter localização');
+      setCityLine('Toque para tentar novamente');
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchLocation();
+  }, [fetchLocation]);
 
   const handleProductPress = (product: Product) => {
     navigation.navigate('ProductDetail', { product });
   };
+
+  const isRetryable = locationState === 'denied' || locationState === 'error';
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -46,13 +106,41 @@ export default function HomeScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <View style={styles.addressRow}>
-            <Ionicons name="location" size={16} color={Colors.primary} />
+          <TouchableOpacity
+            style={styles.addressRow}
+            onPress={isRetryable ? fetchLocation : undefined}
+            activeOpacity={isRetryable ? 0.7 : 1}
+          >
+            {locationState === 'loading' ? (
+              <ActivityIndicator size="small" color={Colors.primary} style={styles.locationIcon} />
+            ) : (
+              <Ionicons
+                name={isRetryable ? 'location-outline' : 'location'}
+                size={18}
+                color={isRetryable ? Colors.textMuted : Colors.primary}
+                style={styles.locationIcon}
+              />
+            )}
             <View>
               <Text style={styles.deliverTo}>Entregar em</Text>
-              <Text style={styles.address}>Rua Principal, 123</Text>
+              <Text
+                style={[
+                  styles.address,
+                  locationState === 'loading' && styles.addressLoading,
+                  isRetryable && styles.addressError,
+                ]}
+                numberOfLines={1}
+              >
+                {addressLine}
+              </Text>
+              {cityLine ? (
+                <Text style={styles.cityLine} numberOfLines={1}>
+                  {cityLine}
+                </Text>
+              ) : null}
             </View>
-          </View>
+          </TouchableOpacity>
+
           <View style={styles.coinBadge}>
             <Ionicons name="cash-outline" size={20} color={Colors.primary} />
           </View>
@@ -146,6 +234,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
+    flex: 1,
+    marginRight: Spacing.sm,
+  },
+  locationIcon: {
+    marginTop: 2,
   },
   deliverTo: {
     fontSize: FontSize.xs,
@@ -155,6 +248,19 @@ const styles = StyleSheet.create({
     fontSize: FontSize.md,
     fontWeight: FontWeight.semiBold,
     color: Colors.textPrimary,
+    maxWidth: 220,
+  },
+  addressLoading: {
+    color: Colors.textMuted,
+    fontWeight: FontWeight.regular,
+  },
+  addressError: {
+    color: Colors.textMuted,
+  },
+  cityLine: {
+    fontSize: FontSize.xs,
+    color: Colors.textMuted,
+    maxWidth: 220,
   },
   coinBadge: {
     width: 40,
