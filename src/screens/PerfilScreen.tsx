@@ -16,25 +16,26 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../context/AuthContext';
 import { RootStackParamList } from '../navigation/AppNavigator';
 
+type NavProp = NativeStackNavigationProp<RootStackParamList>;
+
 interface MenuItem {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
   subtitle?: string;
+  route: keyof RootStackParamList;
 }
 
 const menuItems: MenuItem[] = [
-  { icon: 'location-outline', label: 'Endereços', subtitle: 'Rua Principal, 123' },
-  { icon: 'receipt-outline', label: 'Histórico de Pedidos' },
-  { icon: 'card-outline', label: 'Pagamento' },
-  { icon: 'notifications-outline', label: 'Notificações' },
-  { icon: 'help-circle-outline', label: 'Ajuda & Suporte' },
-  { icon: 'settings-outline', label: 'Configurações' },
+  { icon: 'location-outline', label: 'Endereços', subtitle: 'Gerenciar endereços de entrega', route: 'Enderecos' },
+  { icon: 'receipt-outline', label: 'Histórico de Pedidos', subtitle: 'Ver todos os pedidos', route: 'HistoricoPedidos' },
+  { icon: 'card-outline', label: 'Pagamento', subtitle: 'Métodos e histórico', route: 'Pagamentos' },
+  { icon: 'settings-outline', label: 'Configurações', subtitle: 'Senha, notificações e mais', route: 'Configuracoes' },
 ];
 
 export default function PerfilScreen() {
   const tabBarHeight = useBottomTabBarHeight();
   const { user, logout } = useAuth();
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const navigation = useNavigation<NavProp>();
 
   // ---- Estado de visitante (não logado) ----
   if (!user) {
@@ -88,12 +89,29 @@ export default function PerfilScreen() {
             <View style={styles.avatar}>
               <Ionicons name="person" size={42} color={Colors.textMuted} />
             </View>
-            <TouchableOpacity style={styles.editAvatarBtn}>
-              <Ionicons name="camera" size={14} color={Colors.white} />
+            <TouchableOpacity
+              style={styles.editAvatarBtn}
+              onPress={() => navigation.navigate('EditProfile')}
+            >
+              <Ionicons name="pencil" size={13} color={Colors.white} />
             </TouchableOpacity>
           </View>
           <Text style={styles.userName}>Olá, {user?.name ?? 'Cliente'}!</Text>
           <Text style={styles.userEmail}>{user?.email ?? ''}</Text>
+          {user?.cpf && (
+            <Text style={styles.userMeta}>
+              CPF: {user.cpf.slice(0, 3)}.***.***-{user.cpf.slice(-2)}
+              {user.age ? `  ·  ${user.age} anos` : ''}
+            </Text>
+          )}
+          <TouchableOpacity
+            style={styles.editProfileBtn}
+            onPress={() => navigation.navigate('EditProfile')}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="create-outline" size={15} color={Colors.primary} />
+            <Text style={styles.editProfileBtnText}>Editar perfil</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Menu Items */}
@@ -106,6 +124,7 @@ export default function PerfilScreen() {
                 index < menuItems.length - 1 && styles.menuItemBorder,
               ]}
               activeOpacity={0.7}
+              onPress={() => navigation.navigate(item.route as any)}
             >
               <View style={styles.menuLeft}>
                 <View style={styles.menuIconBg}>
@@ -191,6 +210,28 @@ const styles = StyleSheet.create({
   userEmail: {
     fontSize: FontSize.sm,
     color: Colors.textSecondary,
+  },
+  userMeta: {
+    fontSize: FontSize.xs,
+    color: Colors.textMuted,
+    marginTop: 4,
+    letterSpacing: 0.3,
+  },
+  editProfileBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radius.full ?? 999,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+  },
+  editProfileBtnText: {
+    fontSize: FontSize.sm,
+    color: Colors.primary,
+    fontWeight: FontWeight.medium,
   },
   menuSection: {
     marginHorizontal: Spacing.lg,

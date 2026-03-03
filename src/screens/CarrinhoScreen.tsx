@@ -17,8 +17,6 @@ import { Colors, FontSize, FontWeight, Radius, Spacing } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { RootStackParamList } from '../navigation/AppNavigator';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../config/firebaseConfig';
 
 type NavProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -43,33 +41,8 @@ export default function CarrinhoScreen() {
       return;
     }
 
-    try {
-      const pedidoItems = items.map((i) => ({
-        id: i.product.id,
-        name: i.product.name,
-        price: i.product.price,
-        qty: i.qty,
-        addons: i.addons.map((a) => ({ id: a.id, name: a.name, price: a.price })),
-        observations: i.observations ?? '',
-      }));
-
-      await addDoc(collection(db, 'usuarios', user.uid, 'pedidos'), {
-        items: pedidoItems,
-        total,
-        status: 'Em preparo',
-        createdAt: serverTimestamp(),
-      });
-
-      clearCart();
-      Alert.alert(
-        'Pedido confirmado! 🍔',
-        'Seu pedido foi recebido e está sendo preparado.',
-        [{ text: 'OK' }],
-      );
-    } catch (e) {
-      console.error('Erro ao salvar pedido:', e);
-      Alert.alert('Erro', 'Não foi possível registrar seu pedido. Tente novamente.');
-    }
+    // Navega para o fluxo de checkout (endereço → pagamento → resumo)
+    navigation.navigate('Checkout');
   }
 
   return (

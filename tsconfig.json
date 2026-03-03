@@ -2,5 +2,15 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true
-  }
+  },
+  "include": [
+    "src/**/*",
+    "App.tsx",
+    "index.ts",
+    "index.js"
+  ],
+  "exclude": [
+    "node_modules",
+    "backend"
+  ]
 }

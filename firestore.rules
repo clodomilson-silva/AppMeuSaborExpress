@@ -1,0 +1,74 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ─── Helpers ───────────────────────────────────────────────────────────────
+
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuth() && request.auth.uid == userId;
+    }
+
+    // Campos permitidos ao usuário atualizar em um pedido (pagamento client-side)
+    function onlyPaymentFields() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .hasOnly(['paymentId', 'paymentUrl', 'paymentStatus', 'status', 'updatedAt']);
+    }
+
+    // ─── Usuários ──────────────────────────────────────────────────────────────
+    // Cada usuário lê e escreve apenas o próprio documento de perfil.
+    match /usuarios/{userId} {
+      allow read, write: if isOwner(userId);
+
+      // ── Endereços (subcoleção do usuário) ────────────────────────────────────
+      // Usuário pode criar, listar, editar e excluir seus próprios endereços.
+      match /enderecos/{enderecoId} {
+        allow read, create, update, delete: if isOwner(userId);
+      }
+
+      // ── Notificações (subcoleção do usuário) ─────────────────────────────────
+      // Usuário pode ler e marcar como lida, mas não criar/excluir diretamente.
+      // Criação é responsabilidade das Cloud Functions (Admin SDK).
+      match /notificacoes/{notifId} {
+        allow read: if isOwner(userId);
+        // Permite atualizar somente o campo "lida" (marcar como lida)
+        allow update: if isOwner(userId)
+                      && request.resource.data.diff(resource.data).affectedKeys()
+                         .hasOnly(['lida', 'lidaEm']);
+        allow create, delete: if false;
+      }
+    }
+
+    // ─── Pedidos ───────────────────────────────────────────────────────────────
+    // Usuário pode criar seus próprios pedidos e ler apenas os seus.
+    // Atualização de campos de pagamento é permitida ao dono do pedido.
+    // Alterações de status mais sensíveis (ex: entregue) são feitas por Cloud Functions.
+    match /pedidos/{pedidoId} {
+      allow create: if isAuth()
+                    && request.resource.data.userId == request.auth.uid;
+
+      allow read: if isAuth()
+                  && resource.data.userId == request.auth.uid;
+
+      // Cliente pode atualizar apenas campos de pagamento (ex: cash, Stripe, MP)
+      allow update: if isAuth()
+                    && resource.data.userId == request.auth.uid
+                    && request.resource.data.userId == resource.data.userId
+                    && onlyPaymentFields();
+
+      allow delete: if false;
+    }
+
+    // ─── Histórico de pagamentos ───────────────────────────────────────────────
+    // Coleção separada para auditoria de transações.
+    // Apenas leitura pelo dono; escrita somente via Cloud Functions.
+    match /pagamentos/{pagamentoId} {
+      allow read: if isAuth()
+                  && resource.data.userId == request.auth.uid;
+      allow create, update, delete: if false;
+    }
+  }
+}

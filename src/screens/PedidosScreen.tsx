@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -13,39 +13,31 @@ import { Ionicons } from '@expo/vector-icons';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import {
-  collection,
-  query,
-  orderBy,
-  onSnapshot,
-  Timestamp,
-} from 'firebase/firestore';
+import { Timestamp } from 'firebase/firestore';
 import { Colors, FontSize, FontWeight, Radius, Spacing } from '../theme';
 import { useAuth } from '../context/AuthContext';
-import { db } from '../config/firebaseConfig';
+import { useOrders } from '../context/OrderContext';
 import { RootStackParamList } from '../navigation/AppNavigator';
+import { Order, OrderStatus, ORDER_STATUS_LABELS, ORDER_STATUS_PIPELINE } from '../types/order';
 
 type NavProp = NativeStackNavigationProp<RootStackParamList>;
 
-interface OrderItem {
-  id: string;
-  name: string;
-  qty: number;
-  price: number;
-}
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-interface Order {
-  id: string;
-  createdAt: Timestamp | null;
-  status: 'Em preparo' | 'A caminho' | 'Entregue';
-  items: OrderItem[];
-  total: number;
-}
+const STATUS_COLOR: Record<OrderStatus, string> = {
+  pendente_pagamento: '#FFA726',
+  pago: '#2196F3',
+  em_preparo: '#FFC107',
+  a_caminho: Colors.primary,
+  entregue: '#4CAF50',
+  cancelado: '#F44336',
+};
 
-const statusColor = (status: Order['status']) => {
-  if (status === 'Entregue') return '#4CAF50';
-  if (status === 'Em preparo') return '#FFC107';
-  return Colors.primary;
+const PAYMENT_STATUS_LABEL: Record<string, string> = {
+  pendente: '⏳ Pagamento pendente',
+  aprovado: '✅ Pago',
+  recusado: '❌ Pagamento recusado',
+  reembolsado: '↩️ Reembolsado',
 };
 
 const formatDate = (ts: Timestamp | null): string => {
@@ -54,36 +46,131 @@ const formatDate = (ts: Timestamp | null): string => {
   return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
 };
 
+// ─── Barra de progresso de status ────────────────────────────────────────────
+
+function StatusPipeline({ status }: { status: OrderStatus }) {
+  if (status === 'cancelado') {
+    return (
+      <View style={pipeStyles.cancelRow}>
+        <Ionicons name="close-circle" size={14} color={STATUS_COLOR.cancelado} />
+        <Text style={[pipeStyles.cancelText, { color: STATUS_COLOR.cancelado }]}>
+          Pedido cancelado
+        </Text>
+      </View>
+    );
+  }
+  const currentIdx = ORDER_STATUS_PIPELINE.indexOf(status);
+  return (
+    <View style={pipeStyles.row}>
+      {ORDER_STATUS_PIPELINE.map((s, idx) => {
+        const isCompleted = idx <= currentIdx;
+        const isActive = idx === currentIdx;
+        return (
+          <React.Fragment key={s}>
+            <View style={pipeStyles.step}>
+              <View
+                style={[
+                  pipeStyles.dot,
+                  isCompleted && { backgroundColor: STATUS_COLOR[status] },
+                  isActive && pipeStyles.dotActive,
+                ]}
+              />
+              <Text
+                style={[
+                  pipeStyles.label,
+                  isActive && { color: STATUS_COLOR[status], fontWeight: FontWeight.bold },
+                ]}
+                numberOfLines={1}
+              >
+                {ORDER_STATUS_LABELS[s].split(' ')[0]}
+              </Text>
+            </View>
+            {idx < ORDER_STATUS_PIPELINE.length - 1 && (
+              <View
+                style={[
+                  pipeStyles.line,
+                  idx < currentIdx && { backgroundColor: STATUS_COLOR[status] },
+                ]}
+              />
+            )}
+          </React.Fragment>
+        );
+      })}
+    </View>
+  );
+}
+
+const pipeStyles = StyleSheet.create({
+  row: { flexDirection: 'row', alignItems: 'flex-start', marginVertical: Spacing.sm },
+  step: { alignItems: 'center', width: 48 },
+  dot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: Colors.border,
+    marginBottom: 3,
+  },
+  dotActive: { width: 12, height: 12, borderRadius: 6 },
+  label: { fontSize: 9, color: Colors.textMuted, textAlign: 'center' },
+  line: { flex: 1, height: 1.5, backgroundColor: Colors.border, marginBottom: 10 },
+  cancelRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginVertical: Spacing.sm },
+  cancelText: { fontSize: FontSize.xs, fontWeight: FontWeight.medium },
+});
+
+// ─── Card de pedido ───────────────────────────────────────────────────────────
+
+function OrderCard({ order }: { order: Order }) {
+  const color = STATUS_COLOR[order.status] ?? Colors.primary;
+  return (
+    <View style={styles.orderCard}>
+      {/* Cabeçalho */}
+      <View style={styles.orderHeader}>
+        <Text style={styles.orderId}>Pedido #{order.id.slice(-6).toUpperCase()}</Text>
+        <View style={[styles.statusBadge, { backgroundColor: color + '22' }]}>
+          <View style={[styles.statusDot, { backgroundColor: color }]} />
+          <Text style={[styles.statusText, { color }]}>
+            {ORDER_STATUS_LABELS[order.status]}
+          </Text>
+        </View>
+      </View>
+
+      <Text style={styles.orderDate}>{formatDate(order.createdAt)}</Text>
+
+      {/* Pipeline visual de status */}
+      <StatusPipeline status={order.status} />
+
+      {/* Itens */}
+      {order.items.map((item, i) => (
+        <Text key={i} style={styles.orderItem}>
+          • {item.qty}x {item.name}
+        </Text>
+      ))}
+
+      {/* Rodapé */}
+      <View style={styles.orderFooter}>
+        <View>
+          <Text style={styles.paymentStatusText}>
+            {PAYMENT_STATUS_LABEL[order.paymentStatus] ?? ''}
+          </Text>
+          <Text style={styles.paymentMethodText}>
+            {order.paymentMethod?.label ?? ''}
+          </Text>
+        </View>
+        <Text style={styles.totalValue}>
+          R$ {order.total.toFixed(2).replace('.', ',')}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+// ─── Tela principal ───────────────────────────────────────────────────────────
+
 export default function PedidosScreen() {
   const tabBarHeight = useBottomTabBarHeight();
   const navigation = useNavigation<NavProp>();
   const { user } = useAuth();
-
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!user) {
-      setLoading(false);
-      return;
-    }
-
-    const q = query(
-      collection(db, 'usuarios', user.uid, 'pedidos'),
-      orderBy('createdAt', 'desc'),
-    );
-
-    const unsub = onSnapshot(q, (snap) => {
-      const docs = snap.docs.map((doc) => ({
-        id: doc.id,
-        ...(doc.data() as Omit<Order, 'id'>),
-      }));
-      setOrders(docs);
-      setLoading(false);
-    });
-
-    return unsub;
-  }, [user]);
+  const { orders, loading } = useOrders();
 
   // ── Sem login ──────────────────────────────────────────────────────────────
   if (!user) {
@@ -162,42 +249,16 @@ export default function PedidosScreen() {
         data={orders}
         keyExtractor={(item) => item.id}
         contentContainerStyle={[styles.list, { paddingBottom: tabBarHeight + Spacing.md }]}
-        renderItem={({ item }) => (
-          <View style={styles.orderCard}>
-            <View style={styles.orderHeader}>
-              <Text style={styles.orderId}>Pedido #{item.id.slice(-6).toUpperCase()}</Text>
-              <View style={[styles.statusBadge, { backgroundColor: statusColor(item.status) + '22' }]}>
-                <View style={[styles.statusDot, { backgroundColor: statusColor(item.status) }]} />
-                <Text style={[styles.statusText, { color: statusColor(item.status) }]}>
-                  {item.status}
-                </Text>
-              </View>
-            </View>
-
-            <Text style={styles.orderDate}>{formatDate(item.createdAt)}</Text>
-
-            {item.items.map((orderItem, i) => (
-              <Text key={i} style={styles.orderItem}>
-                • {orderItem.qty}x {orderItem.name}
-              </Text>
-            ))}
-
-            <View style={styles.orderFooter}>
-              <Text style={styles.totalLabel}>Total</Text>
-              <Text style={styles.totalValue}>R$ {item.total.toFixed(2).replace('.', ',')}</Text>
-            </View>
-          </View>
-        )}
+        renderItem={({ item }) => <OrderCard order={item} />}
       />
     </SafeAreaView>
   );
 }
 
+// ─── Estilos ──────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
+  safe: { flex: 1, backgroundColor: Colors.background },
   header: {
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
@@ -209,11 +270,7 @@ const styles = StyleSheet.create({
     fontWeight: FontWeight.bold,
     color: Colors.textPrimary,
   },
-  loadingContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   emptyContainer: {
     flex: 1,
     alignItems: 'center',
@@ -253,28 +310,23 @@ const styles = StyleSheet.create({
     borderRadius: Radius.full,
     marginBottom: Spacing.md,
   },
-  loginBtnText: {
-    color: Colors.white,
-    fontWeight: FontWeight.bold,
-    fontSize: FontSize.md,
-  },
-  registerLink: {
-    paddingVertical: Spacing.sm,
-  },
+  loginBtnText: { color: Colors.white, fontWeight: FontWeight.bold, fontSize: FontSize.md },
+  registerLink: { paddingVertical: Spacing.sm },
   registerLinkText: {
     color: Colors.primaryLight,
     fontSize: FontSize.sm,
     fontWeight: FontWeight.medium,
   },
-  list: {
-    padding: Spacing.lg,
-    gap: Spacing.md,
-  },
+  list: { padding: Spacing.lg, gap: Spacing.md },
+
+  // Order card
   orderCard: {
     backgroundColor: Colors.backgroundCard,
     borderRadius: Radius.lg,
     padding: Spacing.lg,
     gap: Spacing.xs,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   orderHeader: {
     flexDirection: 'row',
@@ -282,11 +334,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: Spacing.xs,
   },
-  orderId: {
-    fontSize: FontSize.md,
-    fontWeight: FontWeight.bold,
-    color: Colors.textPrimary,
-  },
+  orderId: { fontSize: FontSize.md, fontWeight: FontWeight.bold, color: Colors.textPrimary },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -295,40 +343,20 @@ const styles = StyleSheet.create({
     borderRadius: Radius.full,
     gap: 5,
   },
-  statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  statusText: {
-    fontSize: FontSize.xs,
-    fontWeight: FontWeight.semiBold,
-  },
-  orderDate: {
-    fontSize: FontSize.xs,
-    color: Colors.textMuted,
-    marginBottom: Spacing.xs,
-  },
-  orderItem: {
-    fontSize: FontSize.sm,
-    color: Colors.textSecondary,
-  },
+  statusDot: { width: 6, height: 6, borderRadius: 3 },
+  statusText: { fontSize: FontSize.xs, fontWeight: FontWeight.semiBold },
+  orderDate: { fontSize: FontSize.xs, color: Colors.textMuted, marginBottom: Spacing.xs },
+  orderItem: { fontSize: FontSize.sm, color: Colors.textSecondary },
   orderFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'flex-end',
     marginTop: Spacing.md,
     paddingTop: Spacing.sm,
     borderTopWidth: 1,
     borderTopColor: Colors.border,
   },
-  totalLabel: {
-    fontSize: FontSize.sm,
-    color: Colors.textMuted,
-    fontWeight: FontWeight.medium,
-  },
-  totalValue: {
-    fontSize: FontSize.md,
-    fontWeight: FontWeight.bold,
-    color: Colors.primary,
-  },
+  paymentStatusText: { fontSize: FontSize.xs, color: Colors.textSecondary },
+  paymentMethodText: { fontSize: FontSize.xs, color: Colors.textMuted, marginTop: 1 },
+  totalValue: { fontSize: FontSize.md, fontWeight: FontWeight.bold, color: Colors.primary },
 });

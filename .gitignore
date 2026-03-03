@@ -42,3 +42,8 @@ yarn-error.*
 
 # Firebase — credenciais sensíveis (não versionar)
 src/config/firebaseConfig.ts
+
+# Backend (Cloud Functions) — dependências e segredos locais
+backend/functions/node_modules/
+backend/functions/.env
+backend/functions/.runtimeconfig.json
