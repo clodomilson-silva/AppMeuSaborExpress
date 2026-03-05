@@ -18,6 +18,7 @@ export interface User {
   cpf?: string;
   age?: number;
   phone?: string;
+  photoURL?: string;
 }
 
 interface AuthContextData {
@@ -32,6 +33,7 @@ interface AuthContextData {
     age: number,
   ) => Promise<void>;
   updateUserProfile: (data: Partial<Pick<User, 'name' | 'phone' | 'age'>>) => Promise<void>;
+  updatePhotoURL: (url: string) => void;
   logout: () => Promise<void>;
 }
 
@@ -55,6 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             cpf: data.cpf,
             age: data.age,
             phone: data.phone,
+            photoURL: data.photoURL,
           });
         } catch {
           // Sem permissão ainda (novo usuário antes do setDoc) — usa só o Auth
@@ -113,8 +116,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await signOut(auth);
   }
 
+  function updatePhotoURL(url: string) {
+    setUser(prev => (prev ? { ...prev, photoURL: url } : prev));
+  }
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, updateUserProfile, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, updateUserProfile, updatePhotoURL, logout }}>
       {children}
     </AuthContext.Provider>
   );

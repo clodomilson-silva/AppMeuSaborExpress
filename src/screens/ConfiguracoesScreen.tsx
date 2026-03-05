@@ -35,19 +35,19 @@ export default function ConfiguracoesScreen() {
       icon: 'notifications-outline',
       label: 'Notificações',
       subtitle: 'Gerencie alertas de pedidos e promoções',
-      onPress: () => {},
+      onPress: () => navigation.navigate('Notificacoes'),
     },
     {
       icon: 'shield-checkmark-outline',
       label: 'Privacidade',
       subtitle: 'Gerenciar seus dados pessoais',
-      onPress: () => {},
+      onPress: () => navigation.navigate('Privacidade'),
     },
     {
       icon: 'help-circle-outline',
       label: 'Ajuda & Suporte',
       subtitle: 'Fale conosco',
-      onPress: () => {},
+      onPress: () => navigation.navigate('AjudaSuporte'),
     },
     {
       icon: 'log-out-outline',

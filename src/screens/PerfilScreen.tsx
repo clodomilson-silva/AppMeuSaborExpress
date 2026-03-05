@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,11 @@ import {
   TouchableOpacity,
   StatusBar,
   ScrollView,
+  Image,
+  Alert,
+  ActivityIndicator,
+  ActionSheetIOS,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,6 +20,8 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../context/AuthContext';
 import { RootStackParamList } from '../navigation/AppNavigator';
+import * as ImagePicker from 'expo-image-picker';
+import { uploadProfilePhoto } from '../services/photoService';
 
 type NavProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -34,10 +41,86 @@ const menuItems: MenuItem[] = [
 
 export default function PerfilScreen() {
   const tabBarHeight = useBottomTabBarHeight();
-  const { user, logout } = useAuth();
+  const { user, logout, updatePhotoURL } = useAuth();
   const navigation = useNavigation<NavProp>();
+  const [uploading, setUploading] = useState(false);
 
-  // ---- Estado de visitante (não logado) ----
+  // ── Selecionar e enviar foto ──────────────────────────────────────────────
+
+  async function pickAndUpload(source: 'gallery' | 'camera') {
+    if (!user) return;
+
+    // Pedir permissão
+    if (source === 'gallery') {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permissão necessária', 'Permita o acesso à galeria nas configurações do dispositivo.');
+        return;
+      }
+    } else {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permissão necessária', 'Permita o acesso à câmera nas configurações do dispositivo.');
+        return;
+      }
+    }
+
+    const pickerResult = source === 'gallery'
+      ? await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ImagePicker.MediaTypeOptions.Images,
+          allowsEditing: true,
+          aspect: [1, 1],
+          quality: 0.7,
+        })
+      : await ImagePicker.launchCameraAsync({
+          allowsEditing: true,
+          aspect: [1, 1],
+          quality: 0.7,
+        });
+
+    if (pickerResult.canceled) return;
+
+    const uri = pickerResult.assets[0].uri;
+    setUploading(true);
+
+    try {
+      const url = await uploadProfilePhoto(user.uid, uri);
+      updatePhotoURL(url);
+    } catch (err: any) {
+      Alert.alert(
+        'Foto de perfil',
+        err?.message ?? 'Não foi possível enviar a foto. Tente novamente.',
+      );
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  function handleEditAvatar() {
+    if (uploading) return;
+
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ['Cancelar', 'Câmera', 'Galeria de fotos'],
+          cancelButtonIndex: 0,
+        },
+        (idx) => {
+          if (idx === 1) pickAndUpload('camera');
+          if (idx === 2) pickAndUpload('gallery');
+        },
+      );
+    } else {
+      Alert.alert('Alterar foto', 'Escolha a origem da foto', [
+        { text: 'Câmera', onPress: () => pickAndUpload('camera') },
+        { text: 'Galeria', onPress: () => pickAndUpload('gallery') },
+        { text: 'Cancelar', style: 'cancel' },
+      ]);
+    }
+  }
+
+  // ── Estado visitante ──────────────────────────────────────────────────────
+
   if (!user) {
     return (
       <SafeAreaView style={styles.safe} edges={['top']}>
@@ -86,16 +169,34 @@ export default function PerfilScreen() {
         {/* Avatar */}
         <View style={styles.avatarSection}>
           <View style={styles.avatarWrapper}>
-            <View style={styles.avatar}>
-              <Ionicons name="person" size={42} color={Colors.textMuted} />
-            </View>
+            {/* Foto real ou ícone genérico */}
+            {user.photoURL ? (
+              <Image
+                source={{ uri: user.photoURL }}
+                style={styles.avatarImage}
+                resizeMode="cover"
+              />
+            ) : (
+              <View style={styles.avatar}>
+                <Ionicons name="person" size={42} color={Colors.textMuted} />
+              </View>
+            )}
+
+            {/* Botão de editar / loading */}
             <TouchableOpacity
               style={styles.editAvatarBtn}
-              onPress={() => navigation.navigate('EditProfile')}
+              onPress={handleEditAvatar}
+              disabled={uploading}
+              activeOpacity={0.8}
             >
-              <Ionicons name="pencil" size={13} color={Colors.white} />
+              {uploading ? (
+                <ActivityIndicator size={12} color={Colors.white} />
+              ) : (
+                <Ionicons name="pencil" size={13} color={Colors.white} />
+              )}
             </TouchableOpacity>
           </View>
+
           <Text style={styles.userName}>Olá, {user?.name ?? 'Cliente'}!</Text>
           <Text style={styles.userEmail}>{user?.email ?? ''}</Text>
           {user?.cpf && (
@@ -189,6 +290,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 2,
     borderColor: Colors.border,
+  },
+  avatarImage: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    borderWidth: 2,
+    borderColor: Colors.primary,
   },
   editAvatarBtn: {
     position: 'absolute',

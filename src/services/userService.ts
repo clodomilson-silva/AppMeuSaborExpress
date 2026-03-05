@@ -8,6 +8,7 @@ export interface UserProfile {
   cpf?: string;
   age?: number;
   phone?: string;
+  photoURL?: string;
   createdAt?: any;
 }
 
@@ -27,6 +28,18 @@ export async function updateUserProfile(
 ): Promise<void> {
   await updateDoc(doc(db, 'usuarios', uid), {
     ...data,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+// ─── Atualizar apenas a foto ──────────────────────────────────────────────────
+
+export async function updateUserPhotoURL(
+  uid: string,
+  photoURL: string,
+): Promise<void> {
+  await updateDoc(doc(db, 'usuarios', uid), {
+    photoURL,
     updatedAt: serverTimestamp(),
   });
 }

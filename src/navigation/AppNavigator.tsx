@@ -14,6 +14,9 @@ import AddAddressScreen from '../screens/AddAddressScreen';
 import HistoricoPedidosScreen from '../screens/HistoricoPedidosScreen';
 import PagamentosScreen from '../screens/PagamentosScreen';
 import ConfiguracoesScreen from '../screens/ConfiguracoesScreen';
+import NotificacoesScreen from '../screens/NotificacoesScreen';
+import PrivacidadeScreen from '../screens/PrivacidadeScreen';
+import AjudaSuporteScreen from '../screens/AjudaSuporteScreen';
 import { useAuth } from '../context/AuthContext';
 import { Product } from '../data/products';
 import { Colors } from '../theme';
@@ -31,6 +34,9 @@ export type RootStackParamList = {
   HistoricoPedidos: undefined;
   Pagamentos: undefined;
   Configuracoes: undefined;
+  Notificacoes: undefined;
+  Privacidade: undefined;
+  AjudaSuporte: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -64,6 +70,9 @@ export default function AppNavigator() {
         <Stack.Screen name="HistoricoPedidos" component={HistoricoPedidosScreen} options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="Pagamentos" component={PagamentosScreen} options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="Configuracoes" component={ConfiguracoesScreen} options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="Notificacoes" component={NotificacoesScreen} options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="Privacidade" component={PrivacidadeScreen} options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen name="AjudaSuporte" component={AjudaSuporteScreen} options={{ animation: 'slide_from_right' }} />
       </Stack.Navigator>
     </NavigationContainer>
   );
