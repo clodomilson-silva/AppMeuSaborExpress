@@ -141,8 +141,8 @@ export default function HomeScreen() {
             </View>
           </TouchableOpacity>
 
-          <View style={styles.coinBadge}>
-            <Ionicons name="cash-outline" size={20} color={Colors.primary} />
+          <View style={styles.brandBadge}>
+            <Ionicons name="restaurant" size={20} color={Colors.primary} />
           </View>
         </View>
 
@@ -262,7 +262,7 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
     maxWidth: 220,
   },
-  coinBadge: {
+  brandBadge: {
     width: 40,
     height: 40,
     borderRadius: Radius.full,
@@ -270,7 +270,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: Colors.primary + '55',
   },
   sectionHeader: {
     flexDirection: 'row',

@@ -1,8 +1,8 @@
 import React from 'react';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import TabNavigator from './TabNavigator';
+import SplashScreen from '../screens/SplashScreen';
 import ProductDetailScreen from '../screens/ProductDetailScreen';
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
@@ -17,11 +17,10 @@ import ConfiguracoesScreen from '../screens/ConfiguracoesScreen';
 import NotificacoesScreen from '../screens/NotificacoesScreen';
 import PrivacidadeScreen from '../screens/PrivacidadeScreen';
 import AjudaSuporteScreen from '../screens/AjudaSuporteScreen';
-import { useAuth } from '../context/AuthContext';
 import { Product } from '../data/products';
-import { Colors } from '../theme';
 
 export type RootStackParamList = {
+  Splash: undefined;
   MainTabs: undefined;
   ProductDetail: { product: Product };
   Login: undefined;
@@ -42,22 +41,13 @@ export type RootStackParamList = {
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function AppNavigator() {
-  const { loading } = useAuth();
-
-  if (loading) {
-    return (
-      <View style={styles.splash}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-      </View>
-    );
-  }
-
   return (
     <NavigationContainer>
       <Stack.Navigator
-        initialRouteName="MainTabs"
+        initialRouteName="Splash"
         screenOptions={{ headerShown: false }}
       >
+        <Stack.Screen name="Splash" component={SplashScreen} options={{ animation: 'none' }} />
         <Stack.Screen name="MainTabs" component={TabNavigator} />
         <Stack.Screen name="ProductDetail" component={ProductDetailScreen} options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="Login" component={LoginScreen} options={{ animation: 'slide_from_bottom' }} />
@@ -78,9 +68,3 @@ export default function AppNavigator() {
   );
 }
 
-const styles = StyleSheet.create({
-  splash: {
-    flex: 1, backgroundColor: Colors.background,
-    alignItems: 'center', justifyContent: 'center',
-  },
-});

@@ -10,6 +10,7 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -69,9 +70,11 @@ export default function LoginScreen() {
 
           {/* Brand */}
           <View style={styles.brand}>
-            <View style={styles.logoCircle}>
-              <Ionicons name="fast-food" size={36} color={Colors.white} />
-            </View>
+            <Image
+              source={require('../../assets/logo.png')}
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
             <Text style={styles.appName}>Meu Sabor Express</Text>
             <Text style={styles.tagline}>Rápido, gostoso e na sua porta 🍔</Text>
           </View>
@@ -209,19 +212,10 @@ const styles = StyleSheet.create({
 
   // Brand
   brand: { alignItems: 'center', marginBottom: Spacing.xxxl },
-  logoCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: Colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
+  logoImage: {
+    width: 160,
+    height: 100,
     marginBottom: Spacing.md,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    elevation: 8,
   },
   appName: {
     fontSize: FontSize.xxl,

@@ -10,6 +10,7 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -123,9 +124,11 @@ export default function RegisterScreen() {
 
           {/* Brand */}
           <View style={styles.brand}>
-            <View style={styles.logoCircle}>
-              <Ionicons name="fast-food" size={32} color={Colors.white} />
-            </View>
+            <Image
+              source={require('../../assets/logo.png')}
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
             <Text style={styles.appName}>Crie sua conta</Text>
             <Text style={styles.tagline}>Rápido e fácil, em menos de 1 minuto</Text>
           </View>
@@ -320,14 +323,10 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: Colors.border,
   },
   brand: { alignItems: 'center', marginBottom: Spacing.xxl },
-  logoCircle: {
-    width: 64, height: 64, borderRadius: 32,
-    backgroundColor: Colors.primary,
-    alignItems: 'center', justifyContent: 'center',
+  logoImage: {
+    width: 160,
+    height: 100,
     marginBottom: Spacing.md,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4, shadowRadius: 12, elevation: 8,
   },
   appName: {
     fontSize: FontSize.xxl, fontWeight: FontWeight.extraBold,
