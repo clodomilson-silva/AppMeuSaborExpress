@@ -124,11 +124,13 @@ export default function RegisterScreen() {
 
           {/* Brand */}
           <View style={styles.brand}>
-            <Image
-              source={require('../../assets/logo.png')}
-              style={styles.logoImage}
-              resizeMode="contain"
-            />
+            <View style={styles.logoCircle}>
+              <Image
+                source={require('../../assets/logo.png')}
+                style={styles.logoImage}
+                resizeMode="contain"
+              />
+            </View>
             <Text style={styles.appName}>Crie sua conta</Text>
             <Text style={styles.tagline}>Rápido e fácil, em menos de 1 minuto</Text>
           </View>
@@ -323,10 +325,26 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: Colors.border,
   },
   brand: { alignItems: 'center', marginBottom: Spacing.xxl },
-  logoImage: {
-    width: 160,
-    height: 100,
+  logoCircle: {
+    width: 104,
+    height: 104,
+    borderRadius: Radius.full,
+    backgroundColor: Colors.backgroundCard,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: Colors.primary + '55',
     marginBottom: Spacing.md,
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.22,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  logoImage: {
+    width: 72,
+    height: 72,
+    borderRadius: Radius.full,
   },
   appName: {
     fontSize: FontSize.xxl, fontWeight: FontWeight.extraBold,

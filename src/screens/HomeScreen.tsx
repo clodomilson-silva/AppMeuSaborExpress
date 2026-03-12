@@ -11,7 +11,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { CompositeNavigationProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import * as Location from 'expo-location';
 import { Colors, FontSize, FontWeight, Radius, Spacing } from '../theme';
@@ -23,9 +25,14 @@ import ProductCardLarge from '../components/ProductCardLarge';
 import ProductCardSmall from '../components/ProductCardSmall';
 import SearchBar from '../components/SearchBar';
 import { RootStackParamList } from '../navigation/AppNavigator';
+import { TabParamList } from '../navigation/TabNavigator';
 import { Product } from '../data/products';
+import { useCategory } from '../context/CategoryContext';
 
-type NavProp = NativeStackNavigationProp<RootStackParamList>;
+type NavProp = CompositeNavigationProp<
+  BottomTabNavigationProp<TabParamList, 'Inicio'>,
+  NativeStackNavigationProp<RootStackParamList>
+>;
 
 type LocationState = 'loading' | 'granted' | 'denied' | 'error';
 
@@ -37,6 +44,7 @@ export default function HomeScreen() {
   const [locationState, setLocationState] = useState<LocationState>('loading');
   const [addressLine, setAddressLine] = useState('Obtendo localização...');
   const [cityLine, setCityLine] = useState('');
+  const { selectedCategory, setSelectedCategory } = useCategory();
 
   const homeCategories = categories.filter(c => c.id !== 'all');
 
@@ -92,6 +100,20 @@ export default function HomeScreen() {
 
   const handleProductPress = (product: Product) => {
     navigation.navigate('ProductDetail', { product });
+  };
+
+  const handleCategoryPress = (categoryId: string) => {
+    setSelectedCategory(categoryId);
+    navigation.navigate('Cardapio', { categoryId });
+  };
+
+  const handleSearchSubmit = () => {
+    const normalized = search.trim();
+    setSelectedCategory('all');
+    navigation.navigate('Cardapio', {
+      categoryId: 'all',
+      searchQuery: normalized,
+    });
   };
 
   const isRetryable = locationState === 'denied' || locationState === 'error';
@@ -151,6 +173,7 @@ export default function HomeScreen() {
           value={search}
           onChangeText={setSearch}
           placeholder="Buscar no cardápio..."
+          onSubmit={handleSearchSubmit}
         />
 
         {/* Promo Banner */}
@@ -173,9 +196,10 @@ export default function HomeScreen() {
           {homeCategories.map((cat) => (
             <CategoryItem
               key={cat.id}
-              emoji={cat.emoji}
+              icon={cat.icon}
               name={cat.name}
-              onPress={() => {}}
+              selected={selectedCategory === cat.id}
+              onPress={() => handleCategoryPress(cat.id)}
             />
           ))}
         </ScrollView>

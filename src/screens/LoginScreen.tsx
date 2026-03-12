@@ -70,13 +70,18 @@ export default function LoginScreen() {
 
           {/* Brand */}
           <View style={styles.brand}>
-            <Image
-              source={require('../../assets/logo.png')}
-              style={styles.logoImage}
-              resizeMode="contain"
-            />
+            <View style={styles.logoCircle}>
+              <Image
+                source={require('../../assets/logo.png')}
+                style={styles.logoImage}
+                resizeMode="contain"
+              />
+            </View>
             <Text style={styles.appName}>Meu Sabor Express</Text>
-            <Text style={styles.tagline}>Rápido, gostoso e na sua porta 🍔</Text>
+            <View style={styles.taglineRow}>
+              <Ionicons name="fast-food-outline" size={14} color={Colors.textSecondary} />
+              <Text style={styles.tagline}>Rápido, gostoso e na sua porta</Text>
+            </View>
           </View>
 
           {/* Card */}
@@ -212,10 +217,26 @@ const styles = StyleSheet.create({
 
   // Brand
   brand: { alignItems: 'center', marginBottom: Spacing.xxxl },
-  logoImage: {
-    width: 160,
-    height: 100,
+  logoCircle: {
+    width: 104,
+    height: 104,
+    borderRadius: Radius.full,
+    backgroundColor: Colors.backgroundCard,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: Colors.primary + '55',
     marginBottom: Spacing.md,
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.22,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  logoImage: {
+    width: 72,
+    height: 72,
+    borderRadius: Radius.full,
   },
   appName: {
     fontSize: FontSize.xxl,
@@ -226,7 +247,12 @@ const styles = StyleSheet.create({
   tagline: {
     fontSize: FontSize.sm,
     color: Colors.textSecondary,
+  },
+  taglineRow: {
     marginTop: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
 
   // Card

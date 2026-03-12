@@ -51,3 +51,11 @@ export const FontWeight = {
   bold: '700' as const,
   extraBold: '800' as const,
 };
+
+export const FontFamily = {
+  bodyRegular: 'Roboto_400Regular',
+  bodyMedium: 'Roboto_500Medium',
+  bodyBold: 'Roboto_700Bold',
+  headingSemiBold: 'Poppins_600SemiBold',
+  headingBold: 'Poppins_700Bold',
+};

@@ -4,7 +4,9 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
+  View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors, FontSize, FontWeight, Radius, Spacing } from '../theme';
 import { Category } from '../data/categories';
 
@@ -12,6 +14,21 @@ interface Props {
   categories: Category[];
   selectedId: string;
   onSelect: (id: string) => void;
+}
+
+function resolveCategoryIcon(
+  icon: keyof typeof Ionicons.glyphMap,
+  isSelected: boolean,
+): keyof typeof Ionicons.glyphMap {
+  if (!isSelected) return icon;
+
+  const filledCandidate = String(icon).endsWith('-outline')
+    ? String(icon).replace('-outline', '')
+    : String(icon);
+
+  return (filledCandidate in Ionicons.glyphMap
+    ? filledCandidate
+    : icon) as keyof typeof Ionicons.glyphMap;
 }
 
 export default function CategoryFilter({ categories, selectedId, onSelect }: Props) {
@@ -32,7 +49,13 @@ export default function CategoryFilter({ categories, selectedId, onSelect }: Pro
             onPress={() => onSelect(cat.id)}
             activeOpacity={0.75}
           >
-            <Text style={styles.emoji}>{cat.emoji}</Text>
+            <View style={[styles.iconWrap, isSelected && styles.iconWrapActive]}>
+              <Ionicons
+                name={resolveCategoryIcon(cat.icon, isSelected)}
+                size={14}
+                color={isSelected ? Colors.white : Colors.primary}
+              />
+            </View>
             <Text
               style={[styles.label, isSelected && styles.labelActive]}
               numberOfLines={1}
@@ -75,9 +98,16 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
     borderColor: Colors.primary,
   },
-  emoji: {
-    fontSize: 14,
-    lineHeight: 18,
+  iconWrap: {
+    width: 22,
+    height: 22,
+    borderRadius: Radius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.primary + '1F',
+  },
+  iconWrapActive: {
+    backgroundColor: Colors.primary + '44',
   },
   label: {
     fontSize: FontSize.sm,

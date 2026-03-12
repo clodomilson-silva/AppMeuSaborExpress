@@ -12,7 +12,7 @@ import { Colors, FontSize } from '../theme';
 
 export type TabParamList = {
   Inicio: undefined;
-  Cardapio: undefined;
+  Cardapio: { categoryId?: string; searchQuery?: string } | undefined;
   Carrinho: undefined;
   Pedidos: undefined;
   Perfil: undefined;

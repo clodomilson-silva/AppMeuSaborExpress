@@ -1,14 +1,16 @@
+import { Ionicons } from '@expo/vector-icons';
+
 export interface Category {
   id: string;
   name: string;
-  emoji: string;
+  icon: keyof typeof Ionicons.glyphMap;
 }
 
 export const categories: Category[] = [
-  { id: 'all', name: 'Todos', emoji: '🍽️' },
-  { id: 'lanches', name: 'Lanches', emoji: '🍔' },
-  { id: 'bebidas', name: 'Bebidas', emoji: '🥤' },
-  { id: 'sobremesas', name: 'Sobremesas', emoji: '🎂' },
-  { id: 'combos', name: 'Combos', emoji: '🎁' },
-  { id: 'porcoes', name: 'Porções', emoji: '🍟' },
+  { id: 'all', name: 'Todos', icon: 'apps-outline' },
+  { id: 'lanches', name: 'Lanches', icon: 'fast-food-outline' },
+  { id: 'bebidas', name: 'Bebidas', icon: 'beer-outline' },
+  { id: 'sobremesas', name: 'Sobremesas', icon: 'ice-cream-outline' },
+  { id: 'combos', name: 'Combos', icon: 'gift-outline' },
+  { id: 'porcoes', name: 'Porções', icon: 'restaurant-outline' },
 ];

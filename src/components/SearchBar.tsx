@@ -1,9 +1,9 @@
 import React from 'react';
 import {
   View,
-  Text,
   TextInput,
   StyleSheet,
+  TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, FontSize, Radius, Spacing } from '../theme';
@@ -12,12 +12,20 @@ interface Props {
   value: string;
   onChangeText: (text: string) => void;
   placeholder?: string;
+  onSubmit?: () => void;
 }
 
-export default function SearchBar({ value, onChangeText, placeholder = 'Buscar produto...' }: Props) {
+export default function SearchBar({
+  value,
+  onChangeText,
+  placeholder = 'Buscar produto...',
+  onSubmit,
+}: Props) {
   return (
     <View style={styles.container}>
-      <Ionicons name="search" size={18} color={Colors.textMuted} style={styles.icon} />
+      <TouchableOpacity onPress={onSubmit} activeOpacity={0.7} disabled={!onSubmit}>
+        <Ionicons name="search" size={18} color={Colors.textMuted} style={styles.icon} />
+      </TouchableOpacity>
       <TextInput
         style={styles.input}
         value={value}
@@ -25,6 +33,8 @@ export default function SearchBar({ value, onChangeText, placeholder = 'Buscar p
         placeholder={placeholder}
         placeholderTextColor={Colors.textMuted}
         selectionColor={Colors.primary}
+        returnKeyType="search"
+        onSubmitEditing={onSubmit}
       />
     </View>
   );
