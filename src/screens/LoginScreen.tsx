@@ -41,7 +41,7 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       await login(email.trim(), password);
-      navigation.goBack();
+      navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
     } catch (err) {
       setError(translateFirebaseError(err));
     } finally {

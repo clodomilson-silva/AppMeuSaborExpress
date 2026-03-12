@@ -105,10 +105,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (data.name) {
       await firebaseUpdateProfile(auth.currentUser!, { displayName: data.name });
     }
-    await updateDoc(doc(db, 'usuarios', user.uid), {
-      ...data,
+    // Remove campos undefined — Firestore não aceita valores undefined
+    const cleanData = Object.fromEntries(
+      Object.entries(data).filter(([, v]) => v !== undefined),
+    );
+    await setDoc(doc(db, 'usuarios', user.uid), {
+      ...cleanData,
       updatedAt: serverTimestamp(),
-    });
+    }, { merge: true });
     setUser((prev) => (prev ? { ...prev, ...data } : prev));
   }
 

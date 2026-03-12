@@ -95,7 +95,7 @@ export default function RegisterScreen() {
     setLoading(true);
     try {
       await register(name.trim(), email.trim(), password, cpf.trim(), ageNum);
-      navigation.goBack();
+      navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
     } catch (err) {
       setError(translateFirebaseError(err));
     } finally {

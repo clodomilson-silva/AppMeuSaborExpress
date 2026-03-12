@@ -1,65 +1,48 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
-  View, Text, StyleSheet, StatusBar, TouchableOpacity, Switch, ScrollView,
+  View, Text, StyleSheet, StatusBar, TouchableOpacity, ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { Colors, FontSize, FontWeight, Radius, Spacing } from '../theme';
 
-interface NotifItem {
+interface NotifType {
   icon: keyof typeof Ionicons.glyphMap;
-  key: string;
   label: string;
   subtitle: string;
 }
 
-const NOTIF_ITEMS: NotifItem[] = [
+const NOTIF_TYPES: NotifType[] = [
   {
     icon: 'receipt-outline',
-    key: 'pedidos',
-    label: 'Atualizações de pedidos',
-    subtitle: 'Receba o status em tempo real do seu pedido',
+    label: 'Status do pedido',
+    subtitle: 'Confirmação, preparo, saída para entrega e entregue',
+  },
+  {
+    icon: 'time-outline',
+    label: 'Fila de espera',
+    subtitle: 'Aviso quando seu pedido entrar ou sair da fila',
   },
   {
     icon: 'pricetag-outline',
-    key: 'promocoes',
     label: 'Promoções e ofertas',
-    subtitle: 'Descontos exclusivos e cupons especiais',
+    subtitle: 'Cupons e descontos enviados pela gestão',
   },
   {
     icon: 'star-outline',
-    key: 'novidades',
     label: 'Novidades do cardápio',
-    subtitle: 'Pratos novos e sazonais disponíveis',
-  },
-  {
-    icon: 'mail-outline',
-    key: 'email',
-    label: 'Notificações por e-mail',
-    subtitle: 'Resumos semanais e confirmações',
+    subtitle: 'Novos pratos e disponibilidade de itens',
   },
   {
     icon: 'chatbubble-outline',
-    key: 'chat',
-    label: 'Mensagens do suporte',
+    label: 'Suporte ao cliente',
     subtitle: 'Respostas da equipe de atendimento',
   },
 ];
 
 export default function NotificacoesScreen() {
   const navigation = useNavigation();
-
-  const [prefs, setPrefs] = useState<Record<string, boolean>>({
-    pedidos: true,
-    promocoes: true,
-    novidades: false,
-    email: true,
-    chat: true,
-  });
-
-  const toggle = (key: string) =>
-    setPrefs(prev => ({ ...prev, [key]: !prev[key] }));
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -75,23 +58,35 @@ export default function NotificacoesScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Banner */}
+
+        {/* Banner informativo */}
         <View style={styles.banner}>
           <View style={styles.bannerIcon}>
-            <Ionicons name="notifications" size={28} color={Colors.primary} />
+            <Ionicons name="cloud-outline" size={28} color={Colors.primary} />
           </View>
-          <Text style={styles.bannerTitle}>Fique por dentro de tudo</Text>
+          <Text style={styles.bannerTitle}>Gerenciado via microserviço</Text>
           <Text style={styles.bannerSub}>
-            Escolha quais alertas deseja receber para não perder nenhuma novidade.
+            As notificações são enviadas automaticamente pelo servidor e gerenciadas
+            pela interface web de gestão. Nenhuma configuração local é necessária.
           </Text>
         </View>
 
-        {/* Toggles */}
+        {/* Info card */}
+        <View style={styles.infoCard}>
+          <Ionicons name="information-circle-outline" size={18} color={Colors.primary} />
+          <Text style={styles.infoText}>
+            Certifique-se de que as notificações do app estão habilitadas nas
+            configurações do seu dispositivo para receber os alertas em tempo real.
+          </Text>
+        </View>
+
+        {/* Tipos de notificação */}
+        <Text style={styles.sectionTitle}>Tipos de notificação</Text>
         <View style={styles.card}>
-          {NOTIF_ITEMS.map((item, idx) => (
+          {NOTIF_TYPES.map((item, idx) => (
             <View
-              key={item.key}
-              style={[styles.row, idx < NOTIF_ITEMS.length - 1 && styles.rowBorder]}
+              key={item.label}
+              style={[styles.row, idx < NOTIF_TYPES.length - 1 && styles.rowBorder]}
             >
               <View style={styles.iconBg}>
                 <Ionicons name={item.icon} size={20} color={Colors.primary} />
@@ -100,18 +95,16 @@ export default function NotificacoesScreen() {
                 <Text style={styles.label}>{item.label}</Text>
                 <Text style={styles.sub}>{item.subtitle}</Text>
               </View>
-              <Switch
-                value={prefs[item.key]}
-                onValueChange={() => toggle(item.key)}
-                trackColor={{ false: Colors.border, true: Colors.primary + '55' }}
-                thumbColor={prefs[item.key] ? Colors.primary : Colors.textMuted}
-              />
+              <View style={styles.activeBadge}>
+                <Text style={styles.activeBadgeText}>Ativo</Text>
+              </View>
             </View>
           ))}
         </View>
 
         <Text style={styles.hint}>
-          As notificações push dependem das permissões do seu dispositivo.
+          Para desativar um tipo específico de notificação, acesse a interface
+          web de gestão ou entre em contato com o suporte.
         </Text>
       </ScrollView>
     </SafeAreaView>
@@ -148,6 +141,24 @@ const styles = StyleSheet.create({
   },
   bannerTitle: { fontSize: FontSize.lg, fontWeight: FontWeight.bold, color: Colors.textPrimary },
   bannerSub: { fontSize: FontSize.sm, color: Colors.textMuted, textAlign: 'center', lineHeight: 20 },
+  infoCard: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    backgroundColor: Colors.primary + '12',
+    borderRadius: Radius.md,
+    borderWidth: 1, borderColor: Colors.primary + '30',
+    padding: Spacing.md,
+    alignItems: 'flex-start',
+  },
+  infoText: {
+    flex: 1,
+    fontSize: FontSize.sm, color: Colors.textSecondary, lineHeight: 20,
+  },
+  sectionTitle: {
+    fontSize: FontSize.sm, fontWeight: FontWeight.semiBold,
+    color: Colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.8,
+    marginBottom: -Spacing.sm,
+  },
   card: {
     backgroundColor: Colors.backgroundCard,
     borderRadius: Radius.lg,
@@ -167,6 +178,15 @@ const styles = StyleSheet.create({
   info: { flex: 1 },
   label: { fontSize: FontSize.md, fontWeight: FontWeight.medium, color: Colors.textPrimary },
   sub: { fontSize: FontSize.xs, color: Colors.textMuted, marginTop: 2 },
+  activeBadge: {
+    paddingHorizontal: 8, paddingVertical: 3,
+    borderRadius: Radius.full,
+    backgroundColor: Colors.success + '20',
+    borderWidth: 1, borderColor: Colors.success + '40',
+  },
+  activeBadgeText: {
+    fontSize: FontSize.xs, fontWeight: FontWeight.semiBold, color: Colors.success,
+  },
   hint: {
     fontSize: FontSize.xs, color: Colors.textMuted,
     textAlign: 'center', lineHeight: 18,

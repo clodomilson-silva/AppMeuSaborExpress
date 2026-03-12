@@ -6,7 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { useAuth } from '../context/AuthContext';
+import { useAuth, translateFirebaseError } from '../context/AuthContext';
 import { Colors, FontSize, FontWeight, Radius, Spacing } from '../theme';
 
 export default function EditProfileScreen() {
@@ -39,7 +39,7 @@ export default function EditProfileScreen() {
       setSuccess(true);
       setTimeout(() => navigation.goBack(), 1200);
     } catch (e: any) {
-      setError('Erro ao salvar. Tente novamente.');
+      setError(translateFirebaseError(e));
     } finally {
       setLoading(false);
     }

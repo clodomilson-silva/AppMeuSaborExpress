@@ -32,7 +32,7 @@ export default function CarrinhoScreen() {
     if (!user) {
       Alert.alert(
         'Login necessário',
-        'Você precisa entrar na sua conta para finalizar o pedido.',
+        'Entre na sua conta para finalizar o pedido. Seus itens serão mantidos.',
         [
           { text: 'Agora não', style: 'cancel' },
           { text: 'Entrar', onPress: () => navigation.navigate('Login') },
